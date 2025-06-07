@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Future - Opportunity Finder</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f7f9fc;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #0d3d56;
+        }
+        .title {
+            text-align: center;
+            font-size: 2rem;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            color: #0d3d56;
+        }
+        .competition-dot {
+            height: 15px;
+            width: 15px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .dot-green { background-color: green; }
+        .dot-yellow { background-color: orange; }
+        .dot-red { background-color: red; }
+        #loader img {
+            width: 35px;
+        }
+        #loader {
+            display: none;
+            position: relative;
+            margin-top: 5px;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">
+            <img src="{{ url_for('static', filename='img/Logo Euralys.jpg') }}" alt="Logo" width="60" height="60" class="me-2">
+            <strong>Future - Opportunity Finder</strong>
+        </a>
+    </div>
+</nav>
+
+<!-- Title -->
+<div class="container">
+    <h1 class="title">Search Pharma Opportunities</h1>
+</div>
+
+<!-- Search Form -->
+<div class="container mt-3">
+    <form method="POST" action="/search">
+        <div class="mb-3 position-relative">
+            <input type="text" class="form-control" name="search_query" placeholder="Search molecules, e.g. '5 low competition off-patent in Italy'" value="{{ request.form.search_query }}">
+            <div id="loader">
+                <img src="{{ url_for('static', filename='img/loader-magnifier.gif') }}" alt="Loading...">
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="accordion" id="filtersAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="filtersHeading">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="true" aria-controls="filtersCollapse">
+                Advanced Filters (optional)
+              </button>
+            </h2>
+            <div id="filtersCollapse" class="accordion-collapse collapse show" aria-labelledby="filtersHeading" data-bs-parent="#filtersAccordion">
+              <div class="accordion-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="therapeutic_area">Therapeutic Area</label>
+                    <select class="form-select" name="therapeutic_area" id="therapeutic_area">
+                      <option value="">Select Area</option>
+                      {% set area_selected = request.form.therapeutic_area %}
+                      {% for area in ['Oncology','Respiratory','Cardiology','Immunology','Nephrology','CNS'] %}
+                        <option value="{{ area }}" {% if area_selected == area %}selected{% endif %}>{{ area }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="formulation">Formulation</label>
+                    <select class="form-select" name="formulation" id="formulation">
+                      <option value="">Select Formulation</option>
+                      {% set form_selected = request.form.formulation %}
+                      {% for form in ['Oral','Subcutaneous','Injectable'] %}
+                        <option value="{{ form }}" {% if form_selected == form %}selected{% endif %}>{{ form }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="target_country">Target Country</label>
+                    <select class="form-select" name="target_country" id="target_country">
+                      <option value="">Select Country</option>
+                      {% for country in countries %}
+                        <option value="{{ country }}" {% if request.form.target_country == country %}selected{% endif %}>{{ country }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="target_market">Target Market</label>
+                    <input type="text" class="form-control" name="target_market" id="target_market" placeholder="e.g. Hospital, Retail" value="{{ request.form.target_market }}">
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="molecule_type">Molecule Type</label>
+                    <select class="form-select" name="molecule_type" id="molecule_type">
+                      <option value="">Select Type</option>
+                      {% set type_selected = request.form.molecule_type %}
+                      {% for t in ['Chemical','Biologic'] %}
+                        <option value="{{ t }}" {% if type_selected == t %}selected{% endif %}>{{ t }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="market_size">Minimum Market Size (EUR)</label>
+                    <input type="number" class="form-control" name="market_size" id="market_size" placeholder="e.g. 100000" value="{{ request.form.market_size }}">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center mt-3">
+            <button type="submit" class="btn btn-primary">Search Opportunities</button>
+        </div>
+    </form>
+
+    {% if risposta_generica %}
+    <div class="alert alert-info mt-4" role="alert">
+        <h5>AI Response</h5>
+        <p>{{ risposta_generica.replace('
+', '<br>') | safe }}</p>
+        <form method="post" action="/export_word">
+            <input type="hidden" name="word_text" value="{{ risposta_generica }}">
+            <button type="submit" class="btn btn-outline-secondary mt-3">Download as Word</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Results Table -->
+<div class="container mt-5">
+    {% if risultati and risultati|length > 0 %}
+        <h3 class="mb-4">Results</h3>
+<div class="d-flex gap-2 mb-3">
+    <a href="/dashboard" class="btn btn-outline-dark">Visualizza Dashboard</a>
+    <form method="post" action="/export">
+        <input type="hidden" name="results_json" value='{{ risultati | tojson }}'>
+        <button type="submit" class="btn btn-outline-success">Download CSV</button>
+    </form>
+    <form method="post" action="/export_excel">
+        <input type="hidden" name="results_json" value='{{ risultati | tojson }}'>
+        <button type="submit" class="btn btn-outline-primary">Download Excel</button>
+    </form>
+</div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>INN</th>
+                        <th>Patent</th>
+                        <th>Competition</th>
+                        <th>Companies</th>
+                        <th>Market Size (EUR)</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in risultati %}
+                        <tr>
+                            <td>{{ result.inn }}</td>
+                            <td>{{ result.patent }}</td>
+                            <td class="text-center">
+                                {% if result.competition.lower() == 'low' %}
+                                    <span class="competition-dot dot-green"></span>
+                                {% elif result.competition.lower() == 'mid' %}
+                                    <span class="competition-dot dot-yellow"></span>
+                                {% elif result.competition.lower() == 'high' %}
+                                    <span class="competition-dot dot-red"></span>
+                                {% else %}
+                                    {{ result.competition }}
+                                {% endif %}
+                                {{ result.competition }}
+                            </td>
+                            <td>{{ result.companies }}</td>
+                            <td>{{ result.market_size }}</td>
+                            <td>{{ result.notes.replace('\n', '<br>') | safe }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% elif request.method == 'POST' %}
+        <div class="alert alert-warning mt-4" role="alert">
+            No results found. Try refining your search filters.
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const forms = document.querySelectorAll("form");
+        forms.forEach(form => {
+            form.addEventListener("submit", function() {
+                document.getElementById("loader").style.display = "block";
+            });
+        });
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html>
+
+
+
+
